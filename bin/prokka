@@ -48,7 +48,7 @@ my $BINDIR = "$FindBin::RealBin/../binaries/$OPSYS";
 my $EXE = $FindBin::RealScript;
 my $VERSION = "1.14.6";
 my $AUTHOR = 'Torsten Seemann <torsten.seemann@gmail.com>';
-my $URL = 'https://github.com/tseemann/prokka';
+my $URL = 'https://github.com/telatin/prokka';
 my $PROKKA_PMID = '24642063';
 my $PROKKA_DOI = '10.1093/bioinformatics/btu153';
 my $HYPO = 'hypothetical protein';
@@ -56,7 +56,7 @@ my $UNANN = 'unannotated protein';
 my $MAXCONTIGIDLEN = 37;  # Genbank rule
 my $SIGNALP_MAXSEQ = 10_000;  # maximum allowed input for signalp
 my @LOG; # buffer up log lines before we have log file ready
-
+my $do_tbl2asn; #PROCH: This is an option, but also used in check_tool()
 # list of exceptions to /product annotations
 my @GOOD_PROD = (
  'rep',
@@ -194,7 +194,15 @@ sub check_tool {
   my($toolname) = @_;
   my $t = $tools{$toolname};
   my $fp = find_exe($toolname);
-  err("Can't find required '$toolname' in your \$PATH") if !$fp and $t->{NEEDED};
+  #PROCH: tbl2asn autodisable
+  if (!$fp) {
+    err("Can't find required '$toolname' in your \$PATH") if $t->{NEEDED};
+    if ($t eq 'tbl2asn') {
+      msg("Disabling tbl2asn: binary not found / failed");
+      $do_tbl2asn = 0;
+    }
+  } 
+  
   if ($fp) {
     $t->{HAVE} = $fp;
     msg("Looking for '$toolname' - found $fp");
@@ -233,7 +241,7 @@ my(@Options, $quiet, $debug, $kingdom, $fast, $force, $outdir, $prefix, $cpus, $
              $genus, $species, $strain, $plasmid, $prodigaltf,
              $usegenus, $proteins, $hmms, $centre, $scaffolds,
              $rfam, $norrna, $notrna, $rnammer, $rawproduct, $noanno, $accver,
-	     $metagenome, $compliant, $listdb, $citation);
+	           $metagenome, $compliant, $listdb, $citation);
 
 $dbdir = $ENV{'PROKKA_DBDIR'} || abs_path("$FindBin::RealBin/../db");
 
@@ -1411,7 +1419,7 @@ msg("Generating Genbank and Sequin files");
 #runcmd("tbl2asn -a s -q F -A $prefix -N 1 -y 'Annotated using $EXE $VERSION from $URL' -Z $outdir/$prefix.err -M n -V b -i $outdir/$prefix.fsa -f $outdir/$prefix.tbl 2> /dev/null");
 #runcmd("tbl2asn -V b -a s -A $prefix -N 1 -y 'Annotated using $EXE $VERSION from $URL' -Z $outdir/$prefix.err -i $outdir/$prefix.fsa");
 #runcmd("tbl2asn -V b -a s -N 1 -y 'Annotated using $EXE $VERSION from $URL' -Z $outdir/$prefix.err -i $outdir/$prefix.fsa 2> /dev/null");
-if ($metagenome) {
+if (!$do_tbl2asn) {
   msg("Skipping tbl2asn (metagenome)");
 } else {
   runcmd(
@@ -1788,10 +1796,12 @@ sub setOptions {
     {OPT=>"fast!",  VAR=>\$fast, DEFAULT=>0, DESC=>"Fast mode - only use basic BLASTP databases"},
     {OPT=>"noanno!",  VAR=>\$noanno, DEFAULT=>0, DESC=>qq'For CDS just set /product="$UNANN"'},
     {OPT=>"mincontiglen=i",  VAR=>\$mincontiglen, DEFAULT=>1, DESC=>"Minimum contig size [NCBI needs 200]"},
-    {OPT=>"rfam",  VAR=>\$rfam, DEFAULT=>0, DESC=>"Enable searching for ncRNAs with Infernal+Rfam (SLOW!)"},
-    {OPT=>"norrna!",  VAR=>\$norrna, DEFAULT=>0, DESC=>"Don't run rRNA search"},
-    {OPT=>"notrna!",  VAR=>\$notrna, DEFAULT=>0, DESC=>"Don't run tRNA search"},
-    {OPT=>"rnammer!",  VAR=>\$rnammer, DEFAULT=>0, DESC=>"Prefer RNAmmer over Barrnap for rRNA prediction"},
+    {OPT=>"rfam",       VAR=>\$rfam,         DEFAULT=>0, DESC=>"Enable searching for ncRNAs with Infernal+Rfam (SLOW!)"},
+    {OPT=>"norrna!",    VAR=>\$norrna,       DEFAULT=>0, DESC=>"Don't run rRNA search"},
+    {OPT=>"notrna!",    VAR=>\$notrna,       DEFAULT=>0, DESC=>"Don't run tRNA search"},
+    {OPT=>"rnammer!",   VAR=>\$rnammer,      DEFAULT=>0, DESC=>"Prefer RNAmmer over Barrnap for rRNA prediction"},
+    #PROCH: Added notbl2asn
+    {OPT=>"dotbl2asn!", VAR=>\$do_tbl2asn, DEFAULT=>0, DESC=>"Run tbl2asn"},
   );
 
   (!@ARGV) && (usage(1));
