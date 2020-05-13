@@ -1,13 +1,11 @@
 ```
 This is a fork of Prokka, the original README is reported below.
 ```
-## Prokka 1.13 "qi-meta"
+## Fork: Prokka 1.14.6 "qi-meta"
  * `--meta` will disable `-c` in prodigal
  * tbl2asn disabled by default, requires `--dotbl2asn`
  
-```
-The original README is reported below.
-```
+
 ![Don't judge me](https://img.shields.io/badge/Language-Perl_5-steelblue.svg)
 
 # Prokka: rapid prokaryotic genome annotation  
