@@ -198,12 +198,10 @@ sub check_tool {
   if (!$fp) {
     err("Can't find required '$toolname' in your \$PATH") if $t->{NEEDED};
     if ($t eq 'tbl2asn') {
-      msg("Disabling tbl2asn: binary not found / failed");
+      msg("Disabling tbl2asn: binary not found");
       $do_tbl2asn = 0;
     }
-  } 
-  
-  if ($fp) {
+  } else {
     $t->{HAVE} = $fp;
     msg("Looking for '$toolname' - found $fp");
     if ($t->{GETVER}) {
@@ -330,11 +328,12 @@ msg("Annotating as >>> $kingdom <<<");
 
 # . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 # check if --setupdb has been run
-
-if ( !  -r "$dbdir/kingdom/$kingdom/sprot.pin" or ! "$dbdir/hmm/HAMAP.hmm.h3i") {
+msg("$dbdir/kingdom/$kingdom/sprot.pin $dbdir/hmm/HAMAP.hmm.h3i");
+if ( !  -r "$dbdir/kingdom/$kingdom/sprot.pin" or ! -r "$dbdir/hmm/HAMAP.hmm.h3i") {
   err("The sequence databases have not been indexed. Please run 'prokka --setupdb' first.");
 }
 
+ 
 # . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 # check options
 
