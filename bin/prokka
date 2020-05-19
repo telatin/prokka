@@ -245,13 +245,13 @@ setOptions();
 # . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 # welcome message
 
-msg("This is $EXE $VERSION");
-msg("Written by $AUTHOR");
-msg("Homepage is $URL");
-msg("Local time is $starttime");
-msg("You are", $ENV{USER} || 'not telling me who you are!');
-msg("Operating system is $OPSYS");
-msg("You have enabled DEBUG mode. Temporary files will NOT be deleted.") if $debug;
+msg("This is $EXE $VERSION", {  color => 'reset'});
+msg("Written by $AUTHOR", { notimestamp => 1, color => 'reset'});
+msg("Homepage is $URL", { notimestamp => 1, color => 'reset'});
+msg("Local time is $starttime", { notimestamp => 1, color => 'reset'});
+msg("You are", $ENV{USER} || 'not telling me who you are!', { notimestamp => 1, color => 'reset'});
+msg("Operating system is $OPSYS", { notimestamp => 1, color => 'reset'});
+msg("You have enabled DEBUG mode. Temporary files will NOT be deleted.", { notimestamp => 1, color => 'reset'}) if $debug;
 
 # . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 # check BioPerl version
@@ -555,7 +555,7 @@ else {
       }
     );
   }
-  msg("Found $num_trna tRNAs");
+  msg("Found $num_trna tRNAs", {color => 'magenta'});
 }
 
 # . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -574,7 +574,7 @@ if ($kingdom ne 'Viruses' and !$norrna) {
       $num_rrna++;
       msg("$num_rrna", $feat->seq_id, $feat->start, $feat->get_tag_values('product'));
     }
-    msg("Found $num_rrna rRNAs");
+    msg("Found $num_rrna rRNAs", {color => 'magenta'});
   }
   elsif ($tools{'rnammer'}->{HAVE}) {
     msg("Running RNAmmer");
@@ -608,7 +608,7 @@ if ($kingdom ne 'Viruses' and !$norrna) {
       msg(join "\t", $num_rrna, $desc, $sid, $entry->{start}[0], $entry->{stop}[0], $entry->{direction}[0]);
     }
     delfile($rnammerfn);
-    msg("Found $num_rrna rRNAs");
+    msg("Found $num_rrna rRNAs", {color => 'magenta'});
   }
   else {
     msg("You need either Barrnap or RNAmmer installed to predict rRNAs!");
@@ -658,7 +658,7 @@ if ($rfam) {
       $num_ncrna++;
       msg("$num_ncrna ncRNA $x[0] $sid $x[7]..$x[8]");
     }
-    msg("Found $num_ncrna ncRNAs.");
+    msg("Found $num_ncrna ncRNAs.", {color => 'magenta'});
   }
   else {
     msg("Disabling ncRNA search, can't find $cmdb index file.");
@@ -707,7 +707,7 @@ if ($tools{'minced'}->{HAVE}) {
     $num_crispr++;
     msg("CRISPR$num_crispr", $feat->seq_id, $feat->start, "with $num_rpt spacers");
   }
-  msg("Found $num_crispr CRISPRs");
+  msg("Found $num_crispr CRISPRs", {color => 'magenta'});
 }
 
 # . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -1295,8 +1295,9 @@ msg("Writing outputs to $outdir/");
 open my $gff_fh, '>', "$outdir/$prefix.gff";
 my $faa_fh = Bio::SeqIO->new(-file=>">$outdir/$prefix.faa", -format=>'fasta');
 my $ffn_fh = Bio::SeqIO->new(-file=>">$outdir/$prefix.ffn", -format=>'fasta');
-open my $tbl_fh, '>', "$outdir/$prefix.tbl";
-my $fsa_fh = Bio::SeqIO->new(-file=>">$outdir/$prefix.fsa", -format=>'fasta');
+open my $tbl_fh, '>', "$outdir/$prefix.tbl" if ( ! $metagenome); #PROCH
+
+my $fsa_fh = Bio::SeqIO->new(-file=>">$outdir/$prefix.fsa", -format=>'fasta') if ( ! $metagenome); #PROCH
 
 open my $tsv_fh, '>', "$outdir/$prefix.tsv";
 print {$tsv_fh} tsv_line( qw(locus_tag ftype length_bp gene EC_number COG product) );
@@ -1313,9 +1314,9 @@ $fsa_desc .= " [plasmid=$plasmid]" if $plasmid;
 for my $sid (@seq) {
   my $ctg = $seq{$sid}{DNA};
   $ctg->desc($fsa_desc);
-  $fsa_fh->write_seq($ctg);
+  $fsa_fh->write_seq($ctg) if ( ! $metagenome); #PROCH;
   $ctg->desc(undef);
-  print $tbl_fh ">Feature $sid\n";
+  print $tbl_fh ">Feature $sid\n"  if ( ! $metagenome); #PROCH
   for my $f ( sort { $a->start <=> $b->start || $b->end <=> $a->end || $a->has_tag('Parent') <=> $b->has_tag('Parent') } @{ $seq{$sid}{FEATURE} }) {
     if ($f->primary_tag eq 'CDS' and not $f->has_tag('product')) {
       $f->add_tag_value('product', $HYPO);
@@ -1330,6 +1331,8 @@ for my $sid (@seq) {
     print $gff_fh $f->gff_string($gff_factory),"\n";
 
     my ($L,$R) = ($f->strand >= 0) ? ($f->start,$f->end) : ($f->end,$f->start);
+
+    if ( ! $metagenome ) { # PROCH: skip tbl
     print {$tbl_fh} "$L\t$R\t",$f->primary_tag,"\n";
     for my $tag ($f->get_all_tags) {
       next if $tag =~ m/^[A-Z]/ and $tag !~ m/EC_number/i; # remove GFF specific tags (start with uppercase letter)
@@ -1337,7 +1340,7 @@ for my $sid (@seq) {
         print {$tbl_fh} "\t\t\t$tag\t$value\n";
       }
     }
-
+    }
     my $p = $seq{$sid}{DNA}->trunc($f->location);
     $p->display_id( TAG($f, 'locus_tag') );
     $p->desc( TAG($f, 'product') ) if $f->has_tag('product');
@@ -1378,6 +1381,7 @@ if (@seq) {
   }
 }
 
+delfile("$outdir/$prefix.fna") if ($metagenome);
 # . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 # Output a general .txt file with statistics about the annotation
 
@@ -1437,7 +1441,7 @@ if (!$do_tbl2asn) {
 msg("Output files:");
 foreach (qx(find \Q$outdir\E -type f -name "$prefix.*")) {
   chomp;
-  msg($_);
+  msg(" * $_" , {color => 'green', notimestamp=>1});
 }
 msg("Annotation finished successfully.");
 my $endtime = localtime;
@@ -1539,8 +1543,12 @@ sub msg {
   };
 
   my $t = localtime;
+
   my $msg = join(' ', @_);
-  my $timestamp = "[".$t->hms."]";
+  $msg=~s/\\//g if ($settings->{'stripslashes'});
+
+  my $timestamp = $settings->{'notimestamp'} ? '          ' : "[".$t->hms."]";
+
   $msg = color('bold') . $settings->{'title'} . color('reset') . "\n" . $msg if (defined $settings->{'title'});
   my $color_line =  color($settings->{color}) . $timestamp . color("reset") . " $msg\n";
   my $line       =  "$timestamp $msg\n";
@@ -1572,7 +1580,7 @@ sub err {
 #----------------------------------------------------------------------
 
 sub runcmd {
-  msg(@_, { color => 'blue', title=> 'Shell command:'});
+  msg(@_, { color => 'blue', title=> 'Shell command:', stripslashes => 1});
   system(@_)==0 or err("Could not run command:", @_);
 }
 
