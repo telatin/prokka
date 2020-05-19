@@ -166,7 +166,8 @@ my %tools = (
     NEEDED  => 0,  # only if --proteins used
   },
   'tbl2asn' => {
-    GETVER  => "tbl2asn - | grep '^tbl2asn'",
+    # PROCH : Silencing time warning
+    GETVER  => "tbl2asn - 2>/dev/null | grep '^tbl2asn'",
     REGEXP  => qr/tbl2asn\s+($BIDEC)/,
     MINVER  => "24.3",
     NEEDED  => 0,
@@ -194,13 +195,9 @@ sub check_tool {
   my($toolname) = @_;
   my $t = $tools{$toolname};
   my $fp = find_exe($toolname);
-  #PROCH: tbl2asn autodisable
+  
   if (!$fp) {
     err("Can't find required '$toolname' in your \$PATH") if $t->{NEEDED};
-    if ($t eq 'tbl2asn') {
-      msg("Disabling tbl2asn: binary not found");
-      $do_tbl2asn = 0;
-    }
   } else {
     $t->{HAVE} = $fp;
     msg("Looking for '$toolname' - found $fp");
@@ -1532,10 +1529,20 @@ sub find_exe {
 #----------------------------------------------------------------------
 
 sub msg {
+  my $settings = {
+    color => 'cyan',
+    title => undef,
+  };
+
+  eval {
+    $settings = pop(@_) if (defined $_[-1]->{'color'});
+  };
+
   my $t = localtime;
   my $msg = join(' ', @_);
   my $timestamp = "[".$t->hms."]";
-  my $color_line =  color("cyan") . $timestamp . color("reset") . " $msg\n";
+  $msg = color('bold') . $settings->{'title'} . color('reset') . "\n" . $msg if (defined $settings->{'title'});
+  my $color_line =  color($settings->{color}) . $timestamp . color("reset") . " $msg\n";
   my $line       =  "$timestamp $msg\n";
   
   print STDERR $color_line unless $quiet;
@@ -1565,7 +1572,7 @@ sub err {
 #----------------------------------------------------------------------
 
 sub runcmd {
-  msg("Running:", color('bold'), @_);
+  msg(@_, { color => 'blue', title=> 'Shell command:'});
   system(@_)==0 or err("Could not run command:", @_);
 }
 
@@ -1574,10 +1581,10 @@ sub runcmd {
 sub delfile {
   for my $file (@_) {
     if ($debug) {
-      msg("In --debug mode, saving temporary file:", $file);
+      msg("In --debug mode, saving temporary file:", $file, {color => 'yellow'});
     }
     else {
-      msg("Deleting unwanted file:", $file);
+      msg("Deleting unwanted file:", $file, {color => 'yellow'});
       unlink $file;
     }
   }
@@ -1616,7 +1623,7 @@ EOCITE
 sub add_bundle_to_path {
   for my $dir ($BINDIR, "$BINDIR/../common", $FindBin::RealBin) {
     if (-d $dir) {
-      msg("Appending to PATH: $dir");
+      msg("Appending to PATH: $dir", {color => 'yellow'});
       $ENV{PATH} .= ":$dir";
     }
   }
@@ -1643,11 +1650,11 @@ sub cms {
 #----------------------------------------------------------------------
 
 sub list_db {
-  msg( "Looking for databases in: $dbdir" );
-  msg( "* Kingdoms:", kingdoms() );
-  msg( "* Genera:", genera() );
-  msg( "* HMMs:", hmms() );
-  msg( "* CMs:", cms() );
+  msg( "Looking for databases in: $dbdir", {color => 'yellow'} );
+  msg( "* Kingdoms:", kingdoms() , {color => 'yellow'});
+  msg( "* Genera:", genera() , {color => 'yellow'});
+  msg( "* HMMs:", hmms() , {color => 'yellow'});
+  msg( "* CMs:", cms() , {color => 'yellow'});
   exit(0);
 }
 
