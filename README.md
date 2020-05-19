@@ -3,8 +3,12 @@
 [![Build Status](https://travis-ci.org/telatin/prokka.svg?branch=master)](https://travis-ci.org/telatin/prokka)
 
 Changes:
- * `--meta` will disable `-c` in prodigal, will **not** produce/store '.fna', '.fsa' and '.tbl' outputs
+ * `--metagenome` will:
+   * disable `-c` in prodigal
+   * will not produce '.fsa' and '.tbl' outputs
+   * will delete the '.fna' file with the original contigs
  * tbl2asn disabled by default (also in non `--meta` mode), requires `--dotbl2asn` to be enabled
+ * colored messages output
  * singularity definition file, Dockerfile
  
 ```
