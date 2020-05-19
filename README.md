@@ -1,7 +1,10 @@
 
 ## Fork: Prokka 1.14.6 "qi-meta"
+
+Changes:
  * `--meta` will disable `-c` in prodigal
- * tbl2asn disabled by default, requires `--dotbl2asn`
+ * tbl2asn disabled by default, requires `--dotbl2asn` to be enabled
+ * singularity definition file
  
 ```
 This is a fork of Prokka, the original README is reported below.
