@@ -17,6 +17,6 @@ script:
     - "prokka --depends"
     - "prokka --setupdb"
     - "prokka --listdb"
-    - "prokka --cpus 2 --outdir asm --prefix asm test/plasmid.fna"
+    - "prokka --outdir asm --prefix asm --meta test/plasmid.fna"
     - "grep '>' asm/asm.fna"
     - "prokka --cleandb"
