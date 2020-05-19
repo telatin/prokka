@@ -1,5 +1,6 @@
 
 ## Fork: Prokka 1.14.6 "qi-meta"
+[![Build Status](https://travis-ci.org/telatin/prokka.svg?branch=master)](https://travis-ci.org/telatin/prokka)
 
 Changes:
  * `--meta` will disable `-c` in prodigal
