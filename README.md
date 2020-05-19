@@ -4,7 +4,7 @@
 Changes:
  * `--meta` will disable `-c` in prodigal
  * tbl2asn disabled by default, requires `--dotbl2asn` to be enabled
- * singularity definition file
+ * singularity definition file, Dockerfile
  
 ```
 This is a fork of Prokka, the original README is reported below.
