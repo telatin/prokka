@@ -3,8 +3,8 @@
 [![Build Status](https://travis-ci.org/telatin/prokka.svg?branch=master)](https://travis-ci.org/telatin/prokka)
 
 Changes:
- * `--meta` will disable `-c` in prodigal
- * tbl2asn disabled by default, requires `--dotbl2asn` to be enabled
+ * `--meta` will disable `-c` in prodigal, will **not** produce/store '.fna', '.fsa' and '.tbl' outputs
+ * tbl2asn disabled by default (also in non `--meta` mode), requires `--dotbl2asn` to be enabled
  * singularity definition file, Dockerfile
  
 ```
