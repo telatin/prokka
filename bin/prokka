@@ -247,11 +247,14 @@ setOptions();
 # welcome message
 
 msg( {  color => 'blue', title => "$EXE $VERSION"});
-msg("Written by $AUTHOR", { notimestamp => 1, color => 'reset'});
-msg("Homepage is $URL", { notimestamp => 1, color => 'reset'});
-msg("Local time is $starttime", { notimestamp => 1, color => 'reset'});
-msg("You are", $ENV{USER} || 'not telling me who you are!', { notimestamp => 1, color => 'reset'});
-msg("Operating system is $OPSYS", { notimestamp => 1, color => 'reset'});
+msg("Written by $AUTHOR (homepage: $URL)", { notimestamp => 1, color => 'reset'});
+
+
+msg("User:", $ENV{USER} || 'not telling me who you are!', 
+    " | OS: $OPSYS |", 
+    "Date: $starttime",
+   { notimestamp => 1, color => 'reset'});
+
 msg("You have enabled DEBUG mode. Temporary files will NOT be deleted.", { notimestamp => 1, color => 'reset'}) if $debug;
 
 # . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -274,7 +277,6 @@ $accver =~ m/^\d+$/ or err("--accver must be a positive integer");
 # Determine CPU cores available
 
 my $num_cores = num_cpu();
-msg("System has $num_cores cores.");
 if (!defined $cpus or $cpus < 0) {
   $cpus = 1;
 }
@@ -285,7 +287,7 @@ elsif ($cpus > $num_cores) {
   msg("Option --cpu asked for $cpus cores, but system only has $num_cores");
   $cpus = $num_cores;
 }
-msg("Will use maximum of $cpus cores.");
+msg("Total $num_cores cores found. Will use maximum of $cpus cores.");
 
 # . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 # set up options based on --mode
@@ -774,7 +776,7 @@ while (<$PRODIGAL>) {
     }
   }
 }
-msg("Found $num_cds CDS");
+msg("Found $num_cds CDS", {color => 'magenta'});
 
 # . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 # Connect features to their parent sequences
@@ -917,7 +919,7 @@ if ($tools{signalp}->{HAVE}) {
             $num_sigpep++;
           }
         }
-        msg("Found $num_sigpep signal peptides");
+        msg("Found $num_sigpep signal peptides", {color => 'magenta'});
       }
       delfile($spoutfn);
       delfile($sp5outfn) if $sigpver == 5;
@@ -1199,7 +1201,7 @@ for my $sid (@seq) {
     push @{ $collide{$gene} }, $f;
   }
 }
-msg("Found", scalar(keys(%collide)), "unique /gene codes.");
+msg("Found", scalar(keys(%collide)), "unique /gene codes.", {color => 'magenta'});
 
 my $num_collide=0;
 for my $gene (keys %collide) {
@@ -1421,7 +1423,7 @@ msg("Generating Genbank and Sequin files");
 #runcmd("tbl2asn -V b -a s -A $prefix -N 1 -y 'Annotated using $EXE $VERSION from $URL' -Z $outdir/$prefix.err -i $outdir/$prefix.fsa");
 #runcmd("tbl2asn -V b -a s -N 1 -y 'Annotated using $EXE $VERSION from $URL' -Z $outdir/$prefix.err -i $outdir/$prefix.fsa 2> /dev/null");
 if (!$do_tbl2asn) {
-  msg("Skipping tbl2asn (metagenome)");
+  msg("Skipping tbl2asn", $metagenome ? ' (metagenome) ' : ' (not enabled) ');
 } else {
   runcmd(
     "tbl2asn -V b -a r10k -l paired-ends $tbl2asn_opt -N $accver -y 'Annotated using $EXE $VERSION from $URL'".
@@ -1596,10 +1598,15 @@ sub err {
 
 sub runcmd {
   my $begin_time = time();  
-  msg(@_, { color => 'blue', title=> 'Shell command:', stripslashes => 1});
+  msg(@_, { 
+    color => 'blue', 
+    title=> 'Shell command:', 
+    stripslashes => 1});
   system(@_)==0 or err("Could not run command:", @_);
-  my $elapsed_time = formatsec(sprintf("%.2f", time() - $begin_time));
-  msg("Executed in $elapsed_time", { color=>'reset', notimestamp => 1});
+
+  msg("Executed in ", formatsec(sprintf("%.2f", time() - $begin_time)), { 
+    color=>'reset', 
+    notimestamp => 1});
 }
 
 
