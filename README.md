@@ -11,8 +11,11 @@ Changes:
  * colored display output with elasped time for each command; log file is a valid bash script
  * singularity definition file, Dockerfile
  
+ 
 Demo of colored log:
+
 [![Alt text](https://img.youtube.com/vi/ShxC1pG8fGc/0.jpg)](https://www.youtube.com/watch?v=ShxC1pG8fGc)
+
 ```
 This is a fork of Prokka, the original README is reported below.
 ```
