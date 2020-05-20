@@ -8,7 +8,7 @@ Changes:
    * will not produce '.fsa' and '.tbl' outputs
    * will delete the '.fna' file with the original contigs
  * tbl2asn disabled by default (also in non `--meta` mode), requires `--dotbl2asn` to be enabled
- * colored messages output
+ * colored display output with elasped time for each command; log file is a valid bash script
  * singularity definition file, Dockerfile
  
 ```
