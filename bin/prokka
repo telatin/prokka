@@ -486,11 +486,11 @@ if ($notrna) {
   msg("Skipping tRNA search at user request.");
 }
 else {
-  msg("Predicting tRNAs and tmRNAs");
+
   # -l : Assume that each sequence has a linear topology. Search does not wrap
   # -w : batch mode
   my $cmd = "aragorn -l -gc$gcode $aragorn_opt -w \Q$outdir/$prefix.fna\E"; # -t/-m
-  msg("Running: $cmd");
+  msg("$cmd", {color => 'blue', title => "tRNA and tmRNA prediction", stripslashes => 1});
   my $num_trna=0;
   open TRNA, '-|', $cmd;
   my $sid;
@@ -567,9 +567,10 @@ else {
 if ($kingdom ne 'Viruses' and !$norrna) {
   msg("Predicting Ribosomal RNAs");
   if ($tools{'barrnap'}->{HAVE}) {
-    msg("Running Barrnap with $cpus threads");
+    my $cmd = "LC_ALL=C barrnap --kingdom $barrnap_mode --threads $cpus --quiet \Q$outdir/$prefix.fna\E";
+    msg("$cmd", {color => 'blue', title => "Running Barrnap with $cpus threads", stripslashes => 1});
     my $num_rrna=0;
-    open my $BARRNAP, '-|', "LC_ALL=C barrnap --kingdom $barrnap_mode --threads $cpus --quiet \Q$outdir/$prefix.fna\E";
+    open my $BARRNAP, '-|', "$cmd";
     my $gff = Bio::Tools::GFF->new(-fh => $BARRNAP, -gff_version => 3);
     while (my $feat = $gff->next_feature) {
       $feat->remove_tag('Name'); # only want /product
@@ -633,7 +634,7 @@ if ($rfam) {
     my $icpu = $cpus || 1;
     my $dbsize = $total_bp * 2 / 1000000;
     my $cmd = "cmscan -Z $dbsize --cut_ga --rfam --nohmmonly --fmt 2 --cpu $icpu --tblout /dev/stdout -o /dev/null --noali $cmdb \Q$outdir/$prefix.fna\E";
-    msg("Running: $cmd");
+    msg("$cmd", {color => 'blue', title => "Running Infernal", stripslashes => 1});
     open INFERNAL, '-|', $cmd;
     while (<INFERNAL>) {
       next if m/^#/;       # ignore comments
@@ -684,7 +685,7 @@ msg("Total of", scalar(@allrna), "tRNA + rRNA features");
 # CRISPRs
 
 if ($tools{'minced'}->{HAVE}) {
-  msg("Searching for CRISPR repeats");
+  msg("minced -gff \Q$outdir/$prefix.fna\E", {color => 'blue', title => "Searching for CRISPR repeats", stripslashes => 1});
   my $num_crispr=0;
   # ##gff-version 3
   #                                                               [score] = # rpts
@@ -728,13 +729,12 @@ if ($prodigaltf and -r $prodigaltf) {
   msg("Gene finding will be aided by Prodigal training file: $prodigaltf");
   $cmd .= " -t '$prodigaltf'";
 }
-msg("Running: $cmd");
+msg("$cmd", {color => 'blue', title => "Prodigal gene prediction", stripslashes => 1});
 open my $PRODIGAL, '-|', $cmd;
 my $sid;
 while (<$PRODIGAL>) {
   if (m/seqhdr="([^\s\"]+)"/) {
     $sid = $1;
-#    msg("CDS $sid");
     next;
   }
   elsif (m/^>\d+_(\d+)_(\d+)_([+-])$/) {
@@ -757,7 +757,7 @@ while (<$PRODIGAL>) {
       # same contig, overlapping (could check same strand too? not sure)
       if ($rna->seq_id eq $sid and $cds->overlaps($rna)) {
         $overlap = $rna;
-	last;
+        last;
       }
     }
     # mitochondria are highly packed, so don't exclude as CDS/tRNA often overlap.
@@ -821,7 +821,7 @@ if ($tools{signalp}->{HAVE}) {
       else {
         my $opts = $sigpver==3 ? "signalp -t $gram -f short -m hmm" : ($sigpver==4 ? "signalp -t $gram -f short" : '$(which signalp)'." -tmp $outdir -prefix $outdir/signalp -org $gram -format short -fasta");
         my $cmd = "$opts \Q$spoutfn\E 2> /dev/null";
-        msg("Running: $cmd");
+        msg("$cmd", {color => 'blue', title => "Running SignalP", stripslashes => 1});
         my $tool = "SignalP:".$tools{signalp}->{VERSION};
         my $num_sigpep = 0;
         if ($sigpver == 3 or $sigpver == 4) {
