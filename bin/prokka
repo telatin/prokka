@@ -580,11 +580,11 @@ if ($kingdom ne 'Viruses' and !$norrna) {
     msg("Found $num_rrna rRNAs", {color => 'magenta'});
   }
   elsif ($tools{'rnammer'}->{HAVE}) {
-    msg("Running RNAmmer");
+
     my $rnammerfn = "$outdir/rnammer.xml";
     my $num_rrna = 0;
     my $rnammer_opt = $cpus != 1 ? "-multi" : "";
-    runcmd("rnammer -S $rnammer_mode $rnammer_opt -xml \Q$rnammerfn\E \Q$outdir/$prefix.fna\E");
+    runcmd('#Running RNAmmer', "rnammer -S $rnammer_mode $rnammer_opt -xml \Q$rnammerfn\E \Q$outdir/$prefix.fna\E");
     my $xml = XML::Simple->new(ForceArray => 1);
     my $data = $xml->XMLin($rnammerfn);
     for my $entry (@{$data->{entries}[0]->{entry}}) {
@@ -1037,13 +1037,13 @@ if (-r $proteins) {
   msg("Guessed source was in $format format.");
   if ($format =~ m/^(embl|genbank)$/) {
     $faa_file = "$outdir/proteins.faa";
-    msg("Converting $format '$proteins' into Prokka FASTA '$faa_file'");
-    runcmd("prokka-genbank_to_fasta_db --format $format \Q$proteins\E > \Q$faa_file\E 2> /dev/null");
+   
+    runcmd("#Converting $format '$proteins' into Prokka FASTA '$faa_file'", "prokka-genbank_to_fasta_db --format $format \Q$proteins\E > \Q$faa_file\E 2> /dev/null");
   }
   elsif ($format ne 'fasta') {
     err("Option --proteins only supports FASTA, GenBank, and EMBL formats.");
   }
-  runcmd("makeblastdb -dbtype prot -in \Q$faa_file\E -out \Q$outdir/proteins\E -logfile /dev/null");
+  runcmd('#Preparing BLAST db', "makeblastdb -dbtype prot -in \Q$faa_file\E -out \Q$outdir/proteins\E -logfile /dev/null");
   my $src = $proteins;
   $src =~ s{^.*/}{};
   msg("Using /inference source as '$src'");
@@ -1084,11 +1084,11 @@ else {
     my $count=0;
     for my $sid (@seq) {
       for my $f (@{ $seq{$sid}{FEATURE} }) {
-	next unless $f->primary_tag eq 'CDS';
-	next if $f->has_tag('product');
-	$cds{++$count} = $f;
-	print $faa ">$count\n",
-          $f->seq->translate(-codontable_id=>$gcode, -complete=>1)->seq,"\n";
+        next unless $f->primary_tag eq 'CDS';
+        next if $f->has_tag('product');
+        $cds{++$count} = $f;
+        print $faa ">$count\n",
+        $f->seq->translate(-codontable_id=>$gcode, -complete=>1)->seq,"\n";
       }
     }
     close $faa;
@@ -1114,6 +1114,7 @@ else {
 
     my $bls_name = "$outdir/$outname.".$db->{FMT};
     runcmd(
+      '#Database search',
       "cat \Q$faa_name\E | ${PARALLELCMD}$paropts --block $bsize --recstart '>' --pipe".
       " $cmd > \Q$bls_name\E 2> /dev/null"
     );
@@ -1425,7 +1426,7 @@ msg("Generating Genbank and Sequin files");
 if (!$do_tbl2asn) {
   msg("Skipping tbl2asn", $metagenome ? ' (metagenome) ' : ' (not enabled) ');
 } else {
-  runcmd(
+  runcmd('#Running tbl2asn',
     "tbl2asn -V b -a r10k -l paired-ends $tbl2asn_opt -N $accver -y 'Annotated using $EXE $VERSION from $URL'".
     " -Z \Q$outdir/$prefix.err\E -i \Q$outdir/$prefix.fsa\E 2> /dev/null"
   );
@@ -1598,9 +1599,14 @@ sub err {
 
 sub runcmd {
   my $begin_time = time();  
+  my $title = 'Shell command';
+  if (substr($_[0], 0, 1) eq '#') {
+    $title = substr(shift @_, 1);
+
+  }
   msg(@_, { 
     color => 'blue', 
-    title=> 'Shell command:', 
+    title=> $title, 
     stripslashes => 1});
   system(@_)==0 or err("Could not run command:", @_);
 
@@ -1724,25 +1730,28 @@ sub setup_db {
   for my $db (qw/sprot IS AMR/) {
     for my $fasta (<$dbdir/kingdom/*/$db>) {
       next unless -r $fasta;
-      msg("Making kingdom BLASTP database: $fasta");
-      runcmd("makeblastdb -hash_index -dbtype prot -in \Q$fasta\E -logfile /dev/null");
+
+      runcmd("#Making kingdom BLASTP database: $fasta",
+            "makeblastdb -hash_index -dbtype prot -in \Q$fasta\E -logfile /dev/null");
     }
   }
   for my $genus (<$dbdir/genus/*>) {
-    msg("Making genus BLASTP database: $genus");
-    runcmd("makeblastdb -hash_index -dbtype prot -in \Q$genus\E -logfile /dev/null");
+
+    runcmd("#Making genus BLASTP database: $genus",
+          "makeblastdb -hash_index -dbtype prot -in \Q$genus\E -logfile /dev/null");
   }
 
   check_tool('hmmpress');
   for my $hmm (<$dbdir/hmm/*.hmm>) {
-    msg("Pressing HMM database: $hmm");
-    runcmd("hmmpress \Q$hmm\E");
+    
+    runcmd("#Pressing HMM database: $hmm",
+          "hmmpress \Q$hmm\E");
   }
 
   check_tool('cmpress');
   for my $cm (<$dbdir/cm/{Viruses,Bacteria,Archaea}>) {
-    msg("Pressing CM database: $cm");
-    runcmd("cmpress \Q$cm\E");
+    runcmd("#Pressing CM database: $cm", 
+          "cmpress \Q$cm\E");
   }
 
   list_db();
