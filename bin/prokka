@@ -26,6 +26,7 @@ use File::Copy;
 use File::Basename;
 use Time::Piece;
 use Time::Seconds;
+use Time::HiRes qw( time );
 use XML::Simple;
 use Digest::MD5;
 use List::Util qw(min max sum uniq);
@@ -41,7 +42,7 @@ use Bio::Tools::GuessSeqFormat;
 use Term::ANSIColor;
 # . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 # global variables
-
+my $PROKKA_START_TIME = time();  
 my @CMDLINE = ($0, @ARGV);
 my $OPSYS = $^O;
 my $BINDIR = "$FindBin::RealBin/../binaries/$OPSYS";
@@ -245,7 +246,7 @@ setOptions();
 # . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 # welcome message
 
-msg("This is $EXE $VERSION", {  color => 'reset'});
+msg( {  color => 'blue', title => "$EXE $VERSION"});
 msg("Written by $AUTHOR", { notimestamp => 1, color => 'reset'});
 msg("Homepage is $URL", { notimestamp => 1, color => 'reset'});
 msg("Local time is $starttime", { notimestamp => 1, color => 'reset'});
@@ -1441,18 +1442,20 @@ if (!$do_tbl2asn) {
 msg("Output files:");
 foreach (qx(find \Q$outdir\E -type f -name "$prefix.*")) {
   chomp;
-  msg(" * $_" , {color => 'green', notimestamp=>1});
+  msg(" - $_" , {color => 'green', notimestamp=>1});
 }
-msg("Annotation finished successfully.");
-my $endtime = localtime;
-my $walltime = $endtime - $starttime;
+my $total_time = formatsec( sprintf("%.2f", time() - $PROKKA_START_TIME) );
+msg("Annotation finished successfully in $total_time");
+#my $endtime = localtime;
+#my $walltime = $endtime - $starttime;
 #msg("Walltime used:", $walltime->pretty);  # Heikki says this method only came with 1.20
-my $pretty = sprintf "%.2f minutes", $walltime->minutes;
-msg("Walltime used: $pretty");
-msg("If you use this result please cite the Prokka paper:");
-msg("Seemann T (2014) Prokka: rapid prokaryotic genome annotation. Bioinformatics. 30(14):2068-9.");
-msg("Type 'prokka --citation' for more details.");
-msg($walltime % 2 ? "Share and enjoy!" : "Thank you, come again.");
+#my $pretty = sprintf "%.2f minutes", $walltime->minutes;
+#msg("Walltime used: $pretty");
+#msg("If you use this result please cite the Prokka paper:");
+
+msg("Please cite: Seemann T (2014) Prokka: rapid prokaryotic genome annotation. Bioinformatics. 30(14):2068-9.",
+  { notimestamp => 1 });
+
 #EXIT
 
 #----------------------------------------------------------------------
@@ -1538,22 +1541,22 @@ sub msg {
     title => undef,
   };
 
+  # Last parameter can be an anon hash with settings: notimestamp, stripslashes, color
   eval {
-    $settings = pop(@_) if (defined $_[-1]->{'color'});
+    if (defined $_[-1]->{'color'} or defined $_[-1]->{'notimestamp'} or defined $_[-1]->{'stripslashes'}) {
+      my $override = pop(@_);
+      for my $key (sort %{ $override }) {
+        $settings->{$key} = $override->{$key};
+      }
+    }
   };
 
   my $t = localtime;
-
+  my $timestamp = $settings->{'notimestamp'} ? '          ' : '[' . $t->hms . ']';
   my $msg = join(' ', @_);
-  $msg=~s/\\//g if ($settings->{'stripslashes'});
+  $msg = length($msg) > 0 ? "$msg\n" : $msg;
+  my $line = defined $settings->{'title'} ? "#$timestamp $settings->{title}\n$msg" : "#$timestamp $msg";
 
-  my $timestamp = $settings->{'notimestamp'} ? '          ' : "[".$t->hms."]";
-
-  $msg = color('bold') . $settings->{'title'} . color('reset') . "\n" . $msg if (defined $settings->{'title'});
-  my $color_line =  color($settings->{color}) . $timestamp . color("reset") . " $msg\n";
-  my $line       =  "$timestamp $msg\n";
-  
-  print STDERR $color_line unless $quiet;
   if (openhandle(\*LOG)) {
     # write out any buffered log lines
     if (@LOG) {
@@ -1567,6 +1570,18 @@ sub msg {
     # buffer this log line for later
     push @LOG, $line;
   }
+
+  
+  $msg=~s/\\//g if ( $settings->{'stripslashes'} );
+
+  
+
+  $msg = color('bold') . $settings->{'title'} . color('reset') . "\n" . $msg if (defined $settings->{'title'});
+  my $color_line =  color($settings->{'color'}) . $timestamp . color('reset') . " $msg";
+
+  
+  print STDERR $color_line unless $quiet;
+  
 }
 
 #----------------------------------------------------------------------
@@ -1580,8 +1595,31 @@ sub err {
 #----------------------------------------------------------------------
 
 sub runcmd {
+  my $begin_time = time();  
   msg(@_, { color => 'blue', title=> 'Shell command:', stripslashes => 1});
   system(@_)==0 or err("Could not run command:", @_);
+  my $elapsed_time = formatsec(sprintf("%.2f", time() - $begin_time));
+  msg("Executed in $elapsed_time", { color=>'reset', notimestamp => 1});
+}
+
+
+#----------------------------------------------------------------------
+ 
+sub formatsec { 
+  my $time = shift; 
+  my $days = int($time / 86400); 
+   $time -= ($days * 86400); 
+  my $hours = int($time / 3600); 
+   $time -= ($hours * 3600); 
+  my $minutes = int($time / 60); 
+  my $seconds = $minutes < 1 ? sprintf("%.2f", $time - ($minutes*60) ) : $time % 60;
+ 
+  $days = $days < 1 ? '' : $days .'d '; 
+  $hours = $hours < 1 ? '' : $hours .'h '; 
+  $minutes = $minutes < 1 ? '' : $minutes . 'm '; 
+
+  $time = $days . $hours . $minutes . $seconds . 's'; 
+  return $time; 
 }
 
 #----------------------------------------------------------------------
